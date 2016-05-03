@@ -2,17 +2,26 @@ package edu.uw.piano;
 
 import android.app.Activity;
 import android.graphics.Rect;
+import android.media.AudioAttributes;
+import android.media.AudioManager;
+import android.media.SoundPool;
+import android.os.Build;
 import android.os.Bundle;
 import android.support.v4.view.MotionEventCompat;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 
+import java.lang.reflect.Field;
 import java.util.HashMap;
 
 public class MainActivity extends Activity {
 
     private static final String TAG = "Piano";
+
+    public SoundPool soundPool;
+    public int[] sounds;
+    public boolean[] isLoaded;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -26,8 +35,50 @@ public class MainActivity extends Activity {
     @SuppressWarnings("deprecation")
     private void initializeSoundPool(){
         //TODO: Create the SoundPool
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
+            AudioAttributes.Builder audioBuilder = new AudioAttributes.Builder();
+            audioBuilder.setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION);
+            audioBuilder.setUsage(AudioAttributes.USAGE_GAME);
+            AudioAttributes attributes = audioBuilder.build();
+
+            SoundPool.Builder builder = new SoundPool.Builder();
+            builder.setMaxStreams(5);
+            builder.setAudioAttributes(attributes);
+
+            soundPool = builder.build();
+        } else {
+            soundPool = new SoundPool(5, AudioManager.STREAM_MUSIC, 0);
+        }
 
         //TODO: Load the sounds
+
+        sounds = new int[12];
+        isLoaded = new boolean[12];
+
+        soundPool.setOnLoadCompleteListener(new SoundPool.OnLoadCompleteListener() {
+            @Override
+            public void onLoadComplete(SoundPool soundPool, int sampleId, int status) {
+                if (status == 0) {
+                    Log.v(TAG, "Sound " + sampleId + " loaded.");
+                    sounds[sampleId - 1] = sampleId;
+                    isLoaded[sampleId - 1] = true;
+                }
+            }
+        });
+
+        soundPool.load(this, R.raw.piano_040, 1);
+        soundPool.load(this, R.raw.piano_041, 1);
+        soundPool.load(this, R.raw.piano_042, 1);
+        soundPool.load(this, R.raw.piano_043, 1);
+        soundPool.load(this, R.raw.piano_044, 1);
+        soundPool.load(this, R.raw.piano_045, 1);
+        soundPool.load(this, R.raw.piano_046, 1);
+        soundPool.load(this, R.raw.piano_047, 1);
+        soundPool.load(this, R.raw.piano_048, 1);
+        soundPool.load(this, R.raw.piano_049, 1);
+        soundPool.load(this, R.raw.piano_050, 1);
+        soundPool.load(this, R.raw.piano_051, 1);
+
     }
 
 
@@ -39,7 +90,7 @@ public class MainActivity extends Activity {
         switch(action) {
             case MotionEvent.ACTION_DOWN:
             case MotionEvent.ACTION_POINTER_DOWN: //for multiple fingers
-            //case MotionEvent.ACTION_MOVE: //uncomment for swipes
+            case MotionEvent.ACTION_MOVE: //uncomment for swipes
                 handleTap((int)event.getX(), (int)event.getY());
                 return true;
             default:
@@ -54,6 +105,9 @@ public class MainActivity extends Activity {
         Log.v(TAG, "Tapped key: "+KEY_NAMES[key]);
 
         //TODO: Play sound depending on key pressed!
+        if (isLoaded[key]) {
+            soundPool.play(sounds[key], 1, 1, 1, 0, 1);
+        }
 
     }
 
